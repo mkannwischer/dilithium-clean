@@ -2,9 +2,9 @@
 #define AES256CTR_H
 
 #include "params.h"
+#include <immintrin.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <immintrin.h>
 
 #define AES256CTR_BLOCKBYTES 64
 

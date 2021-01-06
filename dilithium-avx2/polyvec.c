@@ -1,12 +1,12 @@
+#ifdef DILITHIUM_USE_AES
+#include "aes256ctr.h"
+#endif
 #include "consts.h"
 #include "ntt.h"
 #include "params.h"
 #include "poly.h"
 #include "polyvec.h"
 #include <stdint.h>
-#ifdef DILITHIUM_USE_AES
-#include "aes256ctr.h"
-#endif
 
 /*************************************************
 * Name:        expand_mat

@@ -5,10 +5,10 @@
   Public Domain
 */
 
+#include "aes256ctr.h"
+#include <immintrin.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <immintrin.h>
-#include "aes256ctr.h"
 
 static inline void aesni_encrypt4(uint8_t out[64],
                                   __m128i *n,
@@ -126,14 +126,14 @@ void aes256ctr_squeezeblocks(uint8_t *out,
 
 void aes256ctr_prf(uint8_t *out,
                    size_t outlen,
-                   const uint8_t seed[32],
+                   const uint8_t key[32],
                    uint64_t nonce)
 {
   unsigned int i;
   uint8_t buf[64];
   aes256ctr_ctx state;
 
-  aes256ctr_init(&state, seed, nonce);
+  aes256ctr_init(&state, key, nonce);
 
   while(outlen >= 64) {
     aesni_encrypt4(out, &state.n, state.rkeys);

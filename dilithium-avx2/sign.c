@@ -1,3 +1,6 @@
+#ifdef DILITHIUM_USE_AES
+#include "aes256ctr.h"
+#endif
 #include "alignment.h"
 #include "fips202.h"
 #include "packing.h"
@@ -8,9 +11,6 @@
 #include "sign.h"
 #include "symmetric.h"
 #include <stdint.h>
-#ifdef DILITHIUM_USE_AES
-#include "aes256ctr.h"
-#endif
 
 #ifndef DILITHIUM_USE_AES
 static inline void polyvec_matrix_expand_row(polyvecl mat[K], const uint8_t rho[SEEDBYTES], unsigned int i) {
