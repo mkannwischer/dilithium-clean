@@ -146,3 +146,7 @@ void aes256ctr_prf(uint8_t *out,
       out[i] = buf[i];
   }
 }
+
+void aes256ctr_ctx_release(aes256ctr_ctx *s) {
+    (void) s;
+}

@@ -6,9 +6,9 @@ SOURCES = fips202x4.c invntt.S consts.c ntt.S packing.c pointwise.S poly.c \
 		  polyvec.c rejsample.c rounding.c sign.c symmetric-shake.c
 OBJECTS = fips202x4.o invntt.o consts.o ntt.o packing.o pointwise.o poly.o \
 		  polyvec.o rejsample.o rounding.o sign.o symmetric-shake.o
-HEADERS = alignment.h api.h params.h sign.h polyvec.h poly.h packing.h ntt.h  \
-		  consts.h rounding.h rejsample.h symmetric.h alignment.h\
-		  fips202x4.h shuffle.inc cdecl.inc
+HEADERS = fips202x4.h alignment.h api.h params.h sign.h polyvec.h poly.h \
+		  packing.h ntt.h consts.h rounding.h rejsample.h symmetric.h \
+		  alignment.h shuffle.inc cdecl.inc
 
 CFLAGS=-O3 -Wall -Wextra -Wpedantic -Wvla -Werror \
 	   -Wmissing-prototypes -Wredundant-decls -std=c99 \
