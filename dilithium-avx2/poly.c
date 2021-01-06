@@ -650,6 +650,7 @@ void poly_uniform_gamma1(poly *a,
   stream256_state state;
   stream256_init(&state, seed, nonce);
   poly_uniform_gamma1_preinit(a, &state);
+  stream256_ctx_release(&state);
 }
 
 #ifndef DILITHIUM_USE_AES
@@ -1133,7 +1134,7 @@ void polyw1_pack(uint8_t *r, const poly *a) {
 void polyw1_pack(uint8_t * restrict r, const poly * restrict a) {
   unsigned int i;
   __m256i f0, f1, f2, f3, f4, f5, f6, f7;
-  const __m256i mask = _mm256_set1_epi64x(0xFF00FF00FF00FF00);
+  const __m256i mask = _mm256_set1_epi64x((long long)0xFF00FF00FF00FF00);
   const __m256i idx = _mm256_set_epi8(15,13,14,12,11, 9,10, 8,
                                        7, 5, 6, 4, 3, 1, 2, 0,
                                       15,13,14,12,11, 9,10, 8,

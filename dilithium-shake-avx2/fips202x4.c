@@ -62,7 +62,7 @@ static void keccakx4_absorb(__m256i s[25],
 
   t = _mm256_set1_epi64x((uint64_t)p << 8*inlen);
   s[i] = _mm256_xor_si256(s[i], t);
-  t = _mm256_set1_epi64x(-0x7FFFFFFFFFFFFFFFLL-1); // 1ULL<<63
+  t = _mm256_set1_epi64x((long long)(1ULL<<63));
   s[r/8 - 1] = _mm256_xor_si256(s[r/8 - 1], t);
 }
 
