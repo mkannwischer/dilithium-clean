@@ -40,4 +40,4 @@
         __m256i as_vec[(N)/8]; \
     }
 
-#endif //PQCLEAN_DILITHIUM2_AVX2_ALIGNMENT_H
+#endif //PQCLEAN_NAMESPACE_ALIGNMENT_H
