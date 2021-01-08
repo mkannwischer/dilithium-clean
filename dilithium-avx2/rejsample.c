@@ -287,7 +287,7 @@ unsigned int rej_uniform_avx(int32_t * restrict r,
 
   ctr = pos = 0;
   while(pos <= REJ_UNIFORM_BUFLEN - 24) {
-    d = _mm256_loadu_si256((__m256i *)&buf[pos]);
+    d = _mm256_loadu_si256((__m256i_u *)&buf[pos]);
     d = _mm256_permute4x64_epi64(d, 0x94);
     d = _mm256_shuffle_epi8(d, idx8);
     d = _mm256_and_si256(d, mask);
@@ -296,10 +296,10 @@ unsigned int rej_uniform_avx(int32_t * restrict r,
     //tmp = _mm256_cmpgt_epi32(bound, d);
     tmp = _mm256_sub_epi32(d, bound);
     good = _mm256_movemask_ps((__m256)tmp);
-    tmp = _mm256_cvtepu8_epi32(_mm_loadl_epi64((__m128i *)&idx.as_arr[good]));
+    tmp = _mm256_cvtepu8_epi32(_mm_loadl_epi64((__m128i_u *)&idx.as_arr[good]));
     d = _mm256_permutevar8x32_epi32(d, tmp);
 
-    _mm256_storeu_si256((__m256i *)&r[ctr], d);
+    _mm256_storeu_si256((__m256i_u *)&r[ctr], d);
     ctr += _mm_popcnt_u32(good);
 
 #ifndef DILITHIUM_USE_AES
@@ -323,6 +323,7 @@ unsigned int rej_uniform_avx(int32_t * restrict r,
   return ctr;
 }
 
+#if 0
 unsigned int rej_eta_avx(int32_t * restrict r,
                          unsigned int len,
                          const uint8_t * restrict buf,
@@ -459,3 +460,4 @@ unsigned int rej_gamma1m1_avx(int32_t * restrict r,
 
   return ctr;
 }
+#endif

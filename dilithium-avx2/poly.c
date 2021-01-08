@@ -45,12 +45,12 @@ void poly_reduce(poly *a) {
   DBENCH_START();
 
   for(i = 0; i < N/8; ++i) {
-    f = _mm256_load_si256((__m256i *)&a->coeffs[8*i]);
+    f = _mm256_load_si256(&a->coeffs_x8[i]);
     g = _mm256_add_epi32(f,off);
     g = _mm256_srai_epi32(g,23);
     g = _mm256_mullo_epi32(g,q);
     f = _mm256_sub_epi32(f,g);
-    _mm256_store_si256((__m256i *)&a->coeffs[8*i],f);
+    _mm256_store_si256(&a->coeffs_x8[i],f);
   }
 
   DBENCH_STOP(*tred);
@@ -72,10 +72,10 @@ void poly_caddq(poly *a) {
   DBENCH_START();
 
   for(i = 0; i < N/8; ++i) {
-    f = _mm256_load_si256((__m256i *)&a->coeffs[8*i]);
+    f = _mm256_load_si256(&a->coeffs_x8[i]);
     g = _mm256_blendv_epi32(zero,q,f);
     f = _mm256_add_epi32(f,g);
-    _mm256_store_si256((__m256i *)&a->coeffs[8*i],f);
+    _mm256_store_si256(&a->coeffs_x8[i],f);
   }
 
   DBENCH_STOP(*tred);
@@ -113,10 +113,10 @@ void poly_add(poly *c, const poly *a, const poly *b)  {
   DBENCH_START();
 
   for(i = 0; i < N; i += 8) {
-    vec0 = _mm256_load_si256((__m256i *)&a->coeffs[i]);
-    vec1 = _mm256_load_si256((__m256i *)&b->coeffs[i]);
+    vec0 = _mm256_load_si256(&a->coeffs_x8[i/8]);
+    vec1 = _mm256_load_si256(&b->coeffs_x8[i/8]);
     vec0 = _mm256_add_epi32(vec0, vec1);
-    _mm256_store_si256((__m256i *)&c->coeffs[i], vec0);
+    _mm256_store_si256(&c->coeffs_x8[i/8], vec0);
   }
 
   DBENCH_STOP(*tadd);
@@ -139,10 +139,10 @@ void poly_sub(poly *c, const poly *a, const poly *b) {
   DBENCH_START();
 
   for(i = 0; i < N; i += 8) {
-    vec0 = _mm256_load_si256((__m256i *)&a->coeffs[i]);
-    vec1 = _mm256_load_si256((__m256i *)&b->coeffs[i]);
+    vec0 = _mm256_load_si256(&a->coeffs_x8[i/8]);
+    vec1 = _mm256_load_si256(&b->coeffs_x8[i/8]);
     vec0 = _mm256_sub_epi32(vec0, vec1);
-    _mm256_store_si256((__m256i *)&c->coeffs[i], vec0);
+    _mm256_store_si256(&c->coeffs_x8[i/8], vec0);
   }
 
   DBENCH_STOP(*tadd);
@@ -162,9 +162,9 @@ void poly_shiftl(poly *a) {
   DBENCH_START();
 
   for(i = 0; i < N; i += 8) {
-    vec = _mm256_load_si256((__m256i *)&a->coeffs[i]);
+    vec = _mm256_load_si256(&a->coeffs_x8[i/8]);
     vec = _mm256_slli_epi32(vec, D);
-    _mm256_store_si256((__m256i *)&a->coeffs[i], vec);
+    _mm256_store_si256(&a->coeffs_x8[i/8], vec);
   }
 
   DBENCH_STOP(*tmul);
@@ -238,7 +238,7 @@ void poly_power2round(poly *a1, poly *a0, const poly *a)
 {
   DBENCH_START();
 
-  power2round_avx(a1->coeffs, a0->coeffs, a->coeffs);
+  power2round_avx(a1->coeffs_x8, a0->coeffs_x8, a->coeffs_x8);
 
   DBENCH_STOP(*tround);
 }
@@ -260,7 +260,7 @@ void poly_decompose(poly *a1, poly *a0, const poly *a)
 {
   DBENCH_START();
 
-  decompose_avx(a1->coeffs, a0->coeffs, a->coeffs);
+  decompose_avx(a1->coeffs_x8, a0->coeffs_x8, a->coeffs_x8);
 
   DBENCH_STOP(*tround);
 }
@@ -283,7 +283,7 @@ unsigned int poly_make_hint(poly *h, const poly *a0, const poly *a1)
   unsigned int r;
   DBENCH_START();
 
-  r = make_hint_avx(h->coeffs, a0->coeffs, a1->coeffs);
+  r = make_hint_avx(h->coeffs_x8, a0->coeffs_x8, a1->coeffs_x8);
 
   DBENCH_STOP(*tround);
   return r;
@@ -302,7 +302,7 @@ void poly_use_hint(poly *b, const poly *a, const poly *h)
 {
   DBENCH_START();
 
-  use_hint_avx(b->coeffs, a->coeffs, h->coeffs);
+  use_hint_avx(b->coeffs_x8, a->coeffs_x8, h->coeffs_x8);
 
   DBENCH_STOP(*tround);
 }
@@ -330,7 +330,7 @@ int poly_chknorm(const poly *a, int32_t B) {
 
   t = _mm256_setzero_si256();
   for(i = 0; i < N/8; ++i) {
-    f = _mm256_load_si256((__m256i *)&a->coeffs[8*i]);
+    f = _mm256_load_si256(&a->coeffs_x8[i]);
     f = _mm256_abs_epi32(f);
     f = _mm256_cmpgt_epi32(f, bound);
     t = _mm256_or_si256(t, f);
@@ -426,7 +426,7 @@ void poly_uniform_4x(poly *a0,
                      poly *a1,
                      poly *a2,
                      poly *a3,
-                     const uint8_t seed[32],
+                     const __m256i *seed,
                      uint16_t nonce0,
                      uint16_t nonce1,
                      uint16_t nonce2,
@@ -438,7 +438,7 @@ void poly_uniform_4x(poly *a0,
   keccakx4_state state;
   __m256i f;
 
-  f = _mm256_loadu_si256((__m256i *)seed);
+  f = _mm256_loadu_si256(seed);
   _mm256_store_si256(buf[0].as_vec, f);
   _mm256_store_si256(buf[1].as_vec, f);
   _mm256_store_si256(buf[2].as_vec, f);
@@ -569,7 +569,7 @@ void poly_uniform_eta_4x(poly *a0,
                          poly *a1,
                          poly *a2,
                          poly *a3,
-                         const uint8_t seed[32],
+                         const __m256i *seed,
                          uint16_t nonce0,
                          uint16_t nonce1,
                          uint16_t nonce2,
@@ -584,7 +584,7 @@ void poly_uniform_eta_4x(poly *a0,
   __m256i f;
   keccakx4_state state;
 
-  f = _mm256_load_si256((__m256i *)seed);
+  f = _mm256_load_si256(seed);
   _mm256_store_si256(buf[0].as_vec, f);
   _mm256_store_si256(buf[1].as_vec, f);
   _mm256_store_si256(buf[2].as_vec, f);
@@ -658,7 +658,7 @@ void poly_uniform_gamma1_4x(poly *a0,
                             poly *a1,
                             poly *a2,
                             poly *a3,
-                            const uint8_t seed[48],
+                            const __m256i *seed,
                             uint16_t nonce0,
                             uint16_t nonce1,
                             uint16_t nonce2,
@@ -670,12 +670,12 @@ void poly_uniform_gamma1_4x(poly *a0,
   __m256i f;
   __m128i g;
 
-  f = _mm256_load_si256((__m256i *)seed);
+  f = _mm256_load_si256(seed);
   _mm256_store_si256(buf[0].as_vec,f);
   _mm256_store_si256(buf[1].as_vec,f);
   _mm256_store_si256(buf[2].as_vec,f);
   _mm256_store_si256(buf[3].as_vec,f);
-  g = _mm_load_si128((__m128i *)&seed[32]);
+  g = _mm_load_si128((__m128i *)&seed[1]);
   _mm_store_si128((__m128i *)&buf[0].as_arr[32],g);
   _mm_store_si128((__m128i *)&buf[1].as_arr[32],g);
   _mm_store_si128((__m128i *)&buf[2].as_arr[32],g);

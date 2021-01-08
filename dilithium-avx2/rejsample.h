@@ -8,6 +8,7 @@
 unsigned int rej_uniform_avx(int32_t *r, const uint8_t *buf);
 
 
+#if 0
 #define rej_eta_avx DILITHIUM_NAMESPACE(_rej_eta_avx)
 unsigned int rej_eta_avx(int32_t *r,
                          unsigned int len,
@@ -19,5 +20,7 @@ unsigned int rej_gamma1m1_avx(int32_t *r,
                               unsigned int len,
                               const uint8_t *buf,
                               unsigned int buflen);
+#endif
+
 
 #endif

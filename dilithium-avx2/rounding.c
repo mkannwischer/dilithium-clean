@@ -22,7 +22,7 @@
 *              - const int32_t *a: input array of length N
 *
 **************************************************/
-void power2round_avx(int32_t * restrict a1, int32_t * restrict a0, const int32_t * restrict a)
+void power2round_avx(__m256i * restrict a1, __m256i * restrict a0, const __m256i * restrict a)
 {
   unsigned int i;
   __m256i f,f0,f1;
@@ -30,13 +30,13 @@ void power2round_avx(int32_t * restrict a1, int32_t * restrict a0, const int32_t
   const __m256i half = _mm256_set1_epi32((1U << (D-1)) - 1);
 
   for(i = 0; i < N/8; ++i) {
-    f = _mm256_load_si256((__m256i *)&a[8*i]);
+    f = _mm256_load_si256(&a[i]);
     f1 = _mm256_add_epi32(f,half);
     f0 = _mm256_and_si256(f1,mask);
     f1 = _mm256_srli_epi32(f1,D);
     f0 = _mm256_sub_epi32(f,f0);
-    _mm256_store_si256((__m256i *)&a1[8*i], f1);
-    _mm256_store_si256((__m256i *)&a0[8*i], f0);
+    _mm256_store_si256(&a1[i], f1);
+    _mm256_store_si256(&a0[i], f0);
   }
 }
 
@@ -55,7 +55,7 @@ void power2round_avx(int32_t * restrict a1, int32_t * restrict a0, const int32_t
 *
 **************************************************/
 #if GAMMA2 == (Q-1)/32
-void decompose_avx(int32_t * restrict a1, int32_t * restrict a0, const int32_t * restrict a)
+void decompose_avx(__m256i * restrict a1, __m256i * restrict a0, const __m256i * restrict a)
 {
   unsigned int i;
   __m256i f,f0,f1;
@@ -68,7 +68,7 @@ void decompose_avx(int32_t * restrict a1, int32_t * restrict a0, const int32_t *
   const __m256i mask = _mm256_set1_epi32(15);
 
   for(i=0;i<N/8;i++) {
-    f = _mm256_load_si256((__m256i *)&a[8*i]);
+    f = _mm256_load_si256(&a[i]);
     f1 = _mm256_add_epi32(f,off);
     f1 = _mm256_srli_epi32(f1,7);
     f1 = _mm256_mulhi_epu16(f1,v);
@@ -79,13 +79,13 @@ void decompose_avx(int32_t * restrict a1, int32_t * restrict a0, const int32_t *
     f = _mm256_cmpgt_epi32(f0,hq);
     f = _mm256_and_si256(f,q);
     f0 = _mm256_sub_epi32(f0,f);
-    _mm256_store_si256((__m256i *)&a1[8*i],f1);
-    _mm256_store_si256((__m256i *)&a0[8*i],f0);
+    _mm256_store_si256(&a1[i],f1);
+    _mm256_store_si256(&a0[i],f0);
   }
 }
 
 #elif GAMMA2 == (Q-1)/88
-void decompose_avx(int32_t * restrict a1, int32_t * restrict a0, const int32_t * restrict a)
+void decompose_avx(__m256i * restrict a1, __m256i * restrict a0, const __m256i * restrict a)
 {
   unsigned int i;
   __m256i f,f0,f1,t;
@@ -99,7 +99,7 @@ void decompose_avx(int32_t * restrict a1, int32_t * restrict a0, const int32_t *
   const __m256i zero = _mm256_setzero_si256();
 
   for(i=0;i<N/8;i++) {
-    f = _mm256_load_si256((__m256i *)&a[8*i]);
+    f = _mm256_load_si256(&a[i]);
     f1 = _mm256_add_epi32(f,off);
     f1 = _mm256_srli_epi32(f1,7);
     f1 = _mm256_mulhi_epu16(f1,v);
@@ -111,8 +111,8 @@ void decompose_avx(int32_t * restrict a1, int32_t * restrict a0, const int32_t *
     f = _mm256_cmpgt_epi32(f0,hq);
     f = _mm256_and_si256(f,q);
     f0 = _mm256_sub_epi32(f0,f);
-    _mm256_store_si256((__m256i *)&a1[8*i],f1);
-    _mm256_store_si256((__m256i *)&a0[8*i],f0);
+    _mm256_store_si256(&a1[i],f1);
+    _mm256_store_si256(&a0[i],f0);
   }
 }
 #endif
@@ -129,7 +129,7 @@ void decompose_avx(int32_t * restrict a1, int32_t * restrict a0, const int32_t *
 *
 * Returns number of overflowing low bits
 **************************************************/
-unsigned int make_hint_avx(int32_t * restrict h, const int32_t * restrict a0, const int32_t * restrict a1)
+unsigned int make_hint_avx(__m256i * restrict h, const __m256i * restrict a0, const __m256i * restrict a1)
 {
   unsigned int i, r = 0;
   __m256i f0, f1, g0, g1;
@@ -139,8 +139,8 @@ unsigned int make_hint_avx(int32_t * restrict h, const int32_t * restrict a0, co
   const __m256i one = _mm256_set1_epi32(1);
 
   for(i = 0; i < N/8; ++i) {
-    f0 = _mm256_load_si256((__m256i *)&a0[8*i]);
-    f1 = _mm256_load_si256((__m256i *)&a1[8*i]);
+    f0 = _mm256_load_si256(&a0[i]);
+    f1 = _mm256_load_si256(&a1[i]);
 
     g0 = _mm256_cmpgt_epi32(blo,f0);
     g1 = _mm256_cmpgt_epi32(f0,bhi);
@@ -152,7 +152,7 @@ unsigned int make_hint_avx(int32_t * restrict h, const int32_t * restrict a0, co
 
     r += _mm_popcnt_u32(_mm256_movemask_ps((__m256)g0));
     g0 = _mm256_add_epi32(g0,one);
-    _mm256_store_si256((__m256i *)&h[8*i], g0);
+    _mm256_store_si256(&h[i], g0);
   }
 
   return N - r;
@@ -168,10 +168,9 @@ unsigned int make_hint_avx(int32_t * restrict h, const int32_t * restrict a0, co
 *              - const int32_t *a: input array of length N with hint bits
 *
 **************************************************/
-void use_hint_avx(int32_t * restrict b, const int32_t * restrict a, const int32_t * restrict hint) {
+void use_hint_avx(__m256i * restrict b, const __m256i * restrict a, const __m256i * restrict hint) {
   unsigned int i;
-  ALIGNED_INT32(N) a0_aligned;
-  int32_t *a0 = a0_aligned.as_arr;
+  __m256i a0[N/8];
 
   __m256i f,g,h,t;
   const __m256i zero = _mm256_setzero_si256();
@@ -183,9 +182,9 @@ void use_hint_avx(int32_t * restrict b, const int32_t * restrict a, const int32_
 
   decompose_avx(b, a0, a);
   for(i=0;i<N/8;i++) {
-    f = _mm256_load_si256((__m256i *)&a0[8*i]);
-    g = _mm256_load_si256((__m256i *)&b[8*i]);
-    h = _mm256_load_si256((__m256i *)&hint[8*i]);
+    f = _mm256_load_si256(&a0[i]);
+    g = _mm256_load_si256(&b[i]);
+    h = _mm256_load_si256(&hint[i]);
     t = _mm256_blendv_epi32(zero,h,f);
     t = _mm256_slli_epi32(t,1);
     h = _mm256_sub_epi32(h,t);
@@ -197,7 +196,7 @@ void use_hint_avx(int32_t * restrict b, const int32_t * restrict a, const int32_
     f = _mm256_cmpgt_epi32(g,max);
     g = _mm256_blendv_epi32(g,zero,f);
 #endif
-    _mm256_store_si256((__m256i *)&b[8*i],g);
+    _mm256_store_si256(&b[i],g);
   }
 }
 

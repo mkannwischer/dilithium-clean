@@ -89,28 +89,28 @@ void polyveck_use_hint(polyveck *w, const polyveck *u, const polyveck *h);
 void polyveck_pack_w1(uint8_t r[K*POLYW1_PACKEDBYTES], const polyveck *w1);
 
 #define polyvec_matrix_expand DILITHIUM_NAMESPACE(_polyvec_matrix_expand)
-void polyvec_matrix_expand(polyvecl mat[K], const uint8_t rho[SEEDBYTES]);
+void polyvec_matrix_expand(polyvecl mat[K], const __m256i *rho);
 
 #ifdef DILITHIUM_USE_AES
 #define polyvec_matrix_expand_row DILITHIUM_NAMESPACE(_polyvec_matrix_expand_row)
-void polyvec_matrix_expand_row(polyvecl mat[K], const uint8_t rho[SEEDBYTES], unsigned int i);
+void polyvec_matrix_expand_row(polyvecl mat[K], const __m256i *rho, unsigned int i);
 #else
 #define polyvec_matrix_expand_row0 DILITHIUM_NAMESPACE(_polyvec_matrix_expand_row0)
-void polyvec_matrix_expand_row0(polyvecl mat[K], const uint8_t rho[SEEDBYTES]);
+void polyvec_matrix_expand_row0(polyvecl mat[K], const __m256i *rho);
 #define polyvec_matrix_expand_row1 DILITHIUM_NAMESPACE(_polyvec_matrix_expand_row1)
-void polyvec_matrix_expand_row1(polyvecl mat[K], const uint8_t rho[SEEDBYTES]);
+void polyvec_matrix_expand_row1(polyvecl mat[K], const __m256i *rho);
 #define polyvec_matrix_expand_row2 DILITHIUM_NAMESPACE(_polyvec_matrix_expand_row2)
-void polyvec_matrix_expand_row2(polyvecl mat[K], const uint8_t rho[SEEDBYTES]);
+void polyvec_matrix_expand_row2(polyvecl mat[K], const __m256i *rho);
 #define polyvec_matrix_expand_row3 DILITHIUM_NAMESPACE(_polyvec_matrix_expand_row3)
-void polyvec_matrix_expand_row3(polyvecl mat[K], const uint8_t rho[SEEDBYTES]);
+void polyvec_matrix_expand_row3(polyvecl mat[K], const __m256i *rho);
 #define polyvec_matrix_expand_row4 DILITHIUM_NAMESPACE(_polyvec_matrix_expand_row4)
-void polyvec_matrix_expand_row4(polyvecl mat[K], const uint8_t rho[SEEDBYTES]);
+void polyvec_matrix_expand_row4(polyvecl mat[K], const __m256i *rho);
 #define polyvec_matrix_expand_row5 DILITHIUM_NAMESPACE(_polyvec_matrix_expand_row5)
-void polyvec_matrix_expand_row5(polyvecl mat[K], const uint8_t rho[SEEDBYTES]);
+void polyvec_matrix_expand_row5(polyvecl mat[K], const __m256i *rho);
 #define polyvec_matrix_expand_row6 DILITHIUM_NAMESPACE(_polyvec_matrix_expand_row6)
-void polyvec_matrix_expand_row6(polyvecl mat[K], const uint8_t rho[SEEDBYTES]);
+void polyvec_matrix_expand_row6(polyvecl mat[K], const __m256i *rho);
 #define polyvec_matrix_expand_row7 DILITHIUM_NAMESPACE(_polyvec_matrix_expand_row7)
-void polyvec_matrix_expand_row7(polyvecl mat[K], const uint8_t rho[SEEDBYTES]);
+void polyvec_matrix_expand_row7(polyvecl mat[K], const __m256i *rho);
 #endif
 
 #define polyvec_matrix_pointwise_montgomery DILITHIUM_NAMESPACE(_polyvec_matrix_pointwise_montgomery)

@@ -13,7 +13,7 @@
 #include <stdint.h>
 
 #ifndef DILITHIUM_USE_AES
-static inline void polyvec_matrix_expand_row(polyvecl mat[K], const uint8_t rho[SEEDBYTES], unsigned int i) {
+static inline void polyvec_matrix_expand_row(polyvecl mat[K], const __m256i *rho, unsigned int i) {
   if(i == 0) polyvec_matrix_expand_row0(mat, rho);
   if(i == 1) polyvec_matrix_expand_row1(mat, rho);
   if(i == 2) polyvec_matrix_expand_row2(mat, rho);
@@ -49,7 +49,9 @@ int crypto_sign_keypair(uint8_t *pk, uint8_t *sk) {
   ALIGNED_UINT8(CRHBYTES) tr_aligned;
   uint8_t *tr = tr_aligned.as_arr;
 
-  const uint8_t *rho, *rhoprime, *key;
+  const uint8_t *rho, *key;
+  const __m256i *rhovec, *rhoprimevec;
+
   polyvecl mat[K], s1;
   polyveck s2;
   poly t1, t0;
@@ -58,7 +60,8 @@ int crypto_sign_keypair(uint8_t *pk, uint8_t *sk) {
   randombytes(seedbuf, SEEDBYTES);
   shake256(seedbuf, 3*SEEDBYTES, seedbuf, SEEDBYTES);
   rho = seedbuf;
-  rhoprime = seedbuf + SEEDBYTES;
+  rhovec = seedbuf_aligned.as_vec;
+  rhoprimevec = seedbuf_aligned.as_vec + (SEEDBYTES / sizeof(__m256i));
   key = seedbuf + 2*SEEDBYTES;
 
   /* Store rho, key */
@@ -85,17 +88,17 @@ int crypto_sign_keypair(uint8_t *pk, uint8_t *sk) {
     nonce++;
   }
 #elif K == 4 && L == 4
-  poly_uniform_eta_4x(&s1.vec[0], &s1.vec[1], &s1.vec[2], &s1.vec[3], rhoprime, 0, 1, 2, 3);
-  poly_uniform_eta_4x(&s2.vec[0], &s2.vec[1], &s2.vec[2], &s2.vec[3], rhoprime, 4, 5, 6, 7);
+  poly_uniform_eta_4x(&s1.vec[0], &s1.vec[1], &s1.vec[2], &s1.vec[3], rhoprimevec, 0, 1, 2, 3);
+  poly_uniform_eta_4x(&s2.vec[0], &s2.vec[1], &s2.vec[2], &s2.vec[3], rhoprimevec, 4, 5, 6, 7);
 #elif K == 6 && L == 5
-  poly_uniform_eta_4x(&s1.vec[0], &s1.vec[1], &s1.vec[2], &s1.vec[3], rhoprime, 0, 1, 2, 3);
-  poly_uniform_eta_4x(&s1.vec[4], &s2.vec[0], &s2.vec[1], &s2.vec[2], rhoprime, 4, 5, 6, 7);
-  poly_uniform_eta_4x(&s2.vec[3], &s2.vec[4], &s2.vec[5], &t0, rhoprime, 8, 9, 10, 11);
+  poly_uniform_eta_4x(&s1.vec[0], &s1.vec[1], &s1.vec[2], &s1.vec[3], rhoprimevec, 0, 1, 2, 3);
+  poly_uniform_eta_4x(&s1.vec[4], &s2.vec[0], &s2.vec[1], &s2.vec[2], rhoprimevec, 4, 5, 6, 7);
+  poly_uniform_eta_4x(&s2.vec[3], &s2.vec[4], &s2.vec[5], &t0, rhoprimevec, 8, 9, 10, 11);
 #elif K == 8 && L == 7
-  poly_uniform_eta_4x(&s1.vec[0], &s1.vec[1], &s1.vec[2], &s1.vec[3], rhoprime, 0, 1, 2, 3);
-  poly_uniform_eta_4x(&s1.vec[4], &s1.vec[5], &s1.vec[6], &s2.vec[0], rhoprime, 4, 5, 6, 7);
-  poly_uniform_eta_4x(&s2.vec[1], &s2.vec[2], &s2.vec[3], &s2.vec[4], rhoprime, 8, 9, 10, 11);
-  poly_uniform_eta_4x(&s2.vec[5], &s2.vec[6], &s2.vec[7], &t0, rhoprime, 12, 13, 14, 15);
+  poly_uniform_eta_4x(&s1.vec[0], &s1.vec[1], &s1.vec[2], &s1.vec[3], rhoprimevec, 0, 1, 2, 3);
+  poly_uniform_eta_4x(&s1.vec[4], &s1.vec[5], &s1.vec[6], &s2.vec[0], rhoprimevec, 4, 5, 6, 7);
+  poly_uniform_eta_4x(&s2.vec[1], &s2.vec[2], &s2.vec[3], &s2.vec[4], rhoprimevec, 8, 9, 10, 11);
+  poly_uniform_eta_4x(&s2.vec[5], &s2.vec[6], &s2.vec[7], &t0, rhoprimevec, 12, 13, 14, 15);
 #else
 #error
 #endif
@@ -111,7 +114,7 @@ int crypto_sign_keypair(uint8_t *pk, uint8_t *sk) {
 
   for(i = 0; i < K; i++) {
     /* Expand matrix row */
-    polyvec_matrix_expand_row(mat, rho, i);
+    polyvec_matrix_expand_row(mat, rhovec, i);
 
     /* Compute inner-product */
     polyvecl_pointwise_acc_montgomery(&t1, &mat[i], &s1);
@@ -160,6 +163,7 @@ int crypto_sign_signature(uint8_t *sig,
   uint8_t *seedbuf = seedbuf_aligned.as_arr;
 
   uint8_t *rho, *tr, *key, *mu, *rhoprime;
+  __m256i *rhovec, *rhoprimevec;
   uint8_t *hint = sig + SEEDBYTES + L*POLYZ_PACKEDBYTES;
   uint64_t nonce = 0;
   polyvecl mat[K], s1, y, z;
@@ -168,10 +172,12 @@ int crypto_sign_signature(uint8_t *sig,
   shake256incctx state;
 
   rho = seedbuf;
+  rhovec = seedbuf_aligned.as_vec;
   tr = rho + SEEDBYTES;
   key = tr + CRHBYTES;
   mu = key + SEEDBYTES;
   rhoprime = mu + CRHBYTES;
+  rhoprimevec = seedbuf_aligned.as_vec + ((SEEDBYTES + CRHBYTES + SEEDBYTES + CRHBYTES) / sizeof(__m256i));
   unpack_sk(rho, tr, key, &t0, &s1, &s2, sk);
 
   /* Compute CRH(tr, msg) */
@@ -189,7 +195,7 @@ int crypto_sign_signature(uint8_t *sig,
 #endif
 
   /* Expand matrix and transform vectors */
-  polyvec_matrix_expand(mat, rho);
+  polyvec_matrix_expand(mat, rhovec);
   polyvecl_ntt(&s1);
   polyveck_ntt(&s2);
   polyveck_ntt(&t0);
@@ -209,18 +215,18 @@ rej:
   }
 #elif L == 4
   poly_uniform_gamma1_4x(&y.vec[0], &y.vec[1], &y.vec[2], &y.vec[3],
-                         rhoprime, nonce, nonce + 1, nonce + 2, nonce + 3);
+                         rhoprimevec, nonce, nonce + 1, nonce + 2, nonce + 3);
   nonce += 4;
 #elif L == 5
   poly_uniform_gamma1_4x(&y.vec[0], &y.vec[1], &y.vec[2], &y.vec[3],
-                         rhoprime, nonce, nonce + 1, nonce + 2, nonce + 3);
+                         rhoprimevec, nonce, nonce + 1, nonce + 2, nonce + 3);
   poly_uniform_gamma1(&y.vec[4], rhoprime, nonce + 4);
   nonce += 5;
 #elif L == 7
   poly_uniform_gamma1_4x(&y.vec[0], &y.vec[1], &y.vec[2], &y.vec[3],
-                         rhoprime, nonce, nonce + 1, nonce + 2, nonce + 3);
+                         rhoprimevec, nonce, nonce + 1, nonce + 2, nonce + 3);
   poly_uniform_gamma1_4x(&y.vec[4], &y.vec[5], &y.vec[6], &h,
-                         rhoprime, nonce + 4, nonce + 5, nonce + 6, 0);
+                         rhoprimevec, nonce + 4, nonce + 5, nonce + 6, 0);
   nonce += 7;
 #else
 #error
@@ -358,6 +364,12 @@ int crypto_sign_verify(const uint8_t *sig,
   unsigned int i, j, pos = 0;
 
   ALIGNED_UINT8(K*POLYW1_PACKEDBYTES) buf_aligned;
+  ALIGNED_UINT8(SEEDBYTES) rho_aligned;
+
+  for(i=0;i<SEEDBYTES;i++){
+    rho_aligned.as_arr[i] = pk[i];
+  }
+
   uint8_t *buf = buf_aligned.as_arr;
   uint8_t mu[CRHBYTES];
   uint8_t c[SEEDBYTES];
@@ -390,7 +402,7 @@ int crypto_sign_verify(const uint8_t *sig,
 
   for(i = 0; i < K; i++) {
     /* Expand matrix row */
-    polyvec_matrix_expand_row(mat, pk, i);
+    polyvec_matrix_expand_row(mat, rho_aligned.as_vec, i);
 
     /* Compute i-th row of Az - c2^Dt1 */
     polyvecl_pointwise_acc_montgomery(&w1, &mat[i], &z);
